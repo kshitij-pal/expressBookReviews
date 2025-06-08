@@ -35,4 +35,4 @@ const PORT =5000;
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
 
-app.listen(PORT,()=>console.log("Server is running on" + PORT));
+app.listen(PORT,()=>console.log("Server is running on " + PORT));

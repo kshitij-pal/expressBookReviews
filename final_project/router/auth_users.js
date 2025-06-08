@@ -3,7 +3,9 @@ const jwt = require('jsonwebtoken');
 let books = require("./booksdb.js");
 const regd_users = express.Router();
 
-let users = [{ username: "john_doe", password: "pass123" }];
+let users = [{ username: "john_doe", password: "pass123" },
+  { username: "kshitij_pal", password: "pass456" }
+];
 
 const isValid = (username)=>{ //returns boolean
 //write code to check is the username is valid
@@ -72,37 +74,35 @@ regd_users.put("/auth/review/:isbn", (req, res) => {
 
 });
 
-const authenticateJWT = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1]; // Expect "Bearer <token>"
+// Delete a book review
 
-  if (!token) {
-    return res.status(401).json({ message: "Token missing" });
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+  // Extract ISBN from route parameters
+  const isbn = req.params.isbn;
+
+  // Retrieve the username from the session (set during login)
+  const username = req.session.authorization?.username;
+
+  if (!username) {
+    return res.status(401).json({ message: "Unauthorized. Please log in first." });
   }
 
-  jwt.verify(token, 'access', (err, decoded) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid token" });
-    }
-    req.user = decoded.data; // here, decoded.data contains password, so maybe you should store username in token payload in login
-    next();
-  });
-};
-
-regd_users.delete("/auth/review/:isbn", authenticateJWT, (req, res) => {
-  const isbn = req.params.isbn;
-  const username = req.user; // username from token payload (see note below)
-
+  // Check if the book exists
   if (!books[isbn]) {
     return res.status(404).json({ message: "Book not found" });
   }
 
-  if (books[isbn].reviews && books[isbn].reviews[username]) {
-    delete books[isbn].reviews[username];
-    return res.status(200).json({ message: "Review deleted successfully", reviews: books[isbn].reviews });
-  } else {
-    return res.status(404).json({ message: "Review not found for this user" });
+  // Check if there are any reviews for this book
+  if (!books[isbn].reviews || !books[isbn].reviews[username]) {
+    return res.status(404).json({ message: "No review found for this user to delete" });
   }
+
+  // Delete the user's review
+  delete books[isbn].reviews[username];
+
+  return res.status(200).json({ message: "Review deleted successfully" });
 });
+
 
 module.exports.authenticated = regd_users;
 module.exports.isValid = isValid;
